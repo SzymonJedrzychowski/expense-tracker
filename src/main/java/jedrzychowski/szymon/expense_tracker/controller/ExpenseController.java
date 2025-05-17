@@ -318,13 +318,13 @@ public class ExpenseController {
     /**
      * Filters the List of Expenses with dates.
      *
-     * @param expenseList List of Expenses to filter.
+     * @param expenses List of Expenses to filter.
      * @param startDate   First date that will be included in the List of Expenses.
      * @param endDate     Last date that will be included in the List of Expenses.
      * @return Filtered List of Expenses.
      */
-    private List<Expense> applyDateFilter(List<Expense> expenseList, LocalDate startDate, LocalDate endDate) {
-        return expenseList.stream().filter(expense -> {
+    private List<Expense> applyDateFilter(List<Expense> expenses, LocalDate startDate, LocalDate endDate) {
+        return expenses.stream().filter(expense -> {
             LocalDate expenseDate = expense.getDate();
             return (!startDate.isAfter(expenseDate) && !endDate.isBefore(expenseDate));
         }).toList();
