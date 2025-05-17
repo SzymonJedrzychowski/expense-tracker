@@ -1,6 +1,9 @@
 package jedrzychowski.szymon.expense_tracker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jedrzychowski.szymon.expense_tracker.dto.expense.CreateExpenseRequestDTO;
 import jedrzychowski.szymon.expense_tracker.dto.expense.UpdateExpenseRequestDTO;
@@ -22,16 +25,22 @@ public class Expense {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "expense_type_id", nullable = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
     private ExpenseType expenseType;
 
     private String description;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "account_id", nullable = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
     private Account account;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "account_state_id", nullable = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
     private AccountState accountState;
 
     public Expense() {

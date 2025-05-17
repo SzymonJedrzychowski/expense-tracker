@@ -1,5 +1,8 @@
 package jedrzychowski.szymon.expense_tracker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jedrzychowski.szymon.expense_tracker.dto.expenseType.CreateExpenseTypeRequestDTO;
 import jedrzychowski.szymon.expense_tracker.dto.expenseType.UpdateExpenseTypeRequestDTO;
@@ -15,6 +18,8 @@ public class ExpenseType {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "account_id", nullable = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
     private Account account;
 
     public ExpenseType() {

@@ -1,6 +1,9 @@
 package jedrzychowski.szymon.expense_tracker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -30,6 +33,8 @@ public class AccountState {
     private Float refundAmount;
 
     @ManyToOne(optional = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
     private Account account;
 
     @OneToMany(mappedBy = "accountState", cascade = CascadeType.ALL, orphanRemoval = true)
