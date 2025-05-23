@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jedrzychowski.szymon.expense_tracker.exception.ReasonedResponseStatusException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -50,5 +51,21 @@ public class GlobalExceptionHandler {
         body.put("errors", exception.getReasons());
 
         return new ResponseEntity<>(body, exception.getStatusCode());
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<Object> handleUsernameNotFoundExceptionException(UsernameNotFoundException exception,
+                                                                           HttpServletRequest request) {
+        int statusCode = 403;
+        HttpStatus httpStatus = HttpStatus.resolve(statusCode);
+        String errorValue = httpStatus != null ? httpStatus.getReasonPhrase() : "";
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", ZonedDateTime.now());
+        body.put("status", statusCode);
+        body.put("error", errorValue);
+        body.put("path", request.getRequestURI());
+        body.put("errors", List.of(exception.getMessage()));
+
+        return new ResponseEntity<>(body, httpStatus);
     }
 }

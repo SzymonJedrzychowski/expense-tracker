@@ -1,6 +1,9 @@
 package jedrzychowski.szymon.expense_tracker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jedrzychowski.szymon.expense_tracker.dto.account.CreateAccountRequestDTO;
 import jedrzychowski.szymon.expense_tracker.dto.account.UpdateAccountRequestDTO;
@@ -13,6 +16,11 @@ public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
+    @ManyToOne(optional = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
+    private AppUser appUser;
 
     @Column(nullable = false, unique = true)
     private String name;
