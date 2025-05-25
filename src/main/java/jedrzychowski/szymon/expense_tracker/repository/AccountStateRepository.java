@@ -2,6 +2,7 @@ package jedrzychowski.szymon.expense_tracker.repository;
 
 import jedrzychowski.szymon.expense_tracker.entity.Account;
 import jedrzychowski.szymon.expense_tracker.entity.AccountState;
+import jedrzychowski.szymon.expense_tracker.entity.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
@@ -14,7 +15,9 @@ public interface AccountStateRepository extends JpaRepository<AccountState, Long
 
     List<AccountState> findAllByAccountIdOrderByDateAsc(Long accountId);
 
-    List<AccountState> findByAccountAndDateGreaterThanOrderByDateAsc(Account account, LocalDate date);
+    List<AccountState> findAllByAccountAndDateGreaterThanOrderByDateAsc(Account account, LocalDate date);
+
+    List<AccountState> findAllByAccount_AppUserOrderByDateAsc(AppUser appUser);
 
     Optional<AccountState> findFirstByAccountAndDateBeforeOrderByDateDesc(Account account, LocalDate date);
 }

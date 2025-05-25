@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jedrzychowski.szymon.expense_tracker.dto.account.CreateAccountRequestDTO;
 import jedrzychowski.szymon.expense_tracker.dto.account.UpdateAccountRequestDTO;
+import jedrzychowski.szymon.expense_tracker.exception.ReasonedResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -35,8 +37,9 @@ public class Account {
         this.name = name;
     }
 
-    public Account(CreateAccountRequestDTO createAccountRequestDto) {
+    public Account(CreateAccountRequestDTO createAccountRequestDto, AppUser appUser) {
         this.name = createAccountRequestDto.getName();
+        this.appUser = appUser;
     }
 
     public void update(UpdateAccountRequestDTO updateAccountRequestDTO) {
@@ -61,5 +64,21 @@ public class Account {
 
     public void setExpenseTypes(List<ExpenseType> expenseTypes) {
         this.expenseTypes = expenseTypes;
+    }
+
+    public AppUser getAppUser() {
+        return appUser;
+    }
+
+    public void setAppUser(AppUser appUser) {
+        this.appUser = appUser;
+    }
+
+    public void validateIfAccountIsOwnedByCurrentUser(AppUser appUser) {
+        if (this.appUser.equals(appUser)) {
+            throw new ReasonedResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Account is not owned by authorised user.");
+        }
     }
 }

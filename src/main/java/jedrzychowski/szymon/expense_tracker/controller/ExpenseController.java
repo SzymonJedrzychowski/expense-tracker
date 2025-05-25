@@ -3,18 +3,15 @@ package jedrzychowski.szymon.expense_tracker.controller;
 import jakarta.validation.Valid;
 import jedrzychowski.szymon.expense_tracker.dto.expense.CreateExpenseRequestDTO;
 import jedrzychowski.szymon.expense_tracker.dto.expense.UpdateExpenseRequestDTO;
-import jedrzychowski.szymon.expense_tracker.entity.Account;
-import jedrzychowski.szymon.expense_tracker.entity.AccountState;
-import jedrzychowski.szymon.expense_tracker.entity.Expense;
-import jedrzychowski.szymon.expense_tracker.entity.ExpenseType;
+import jedrzychowski.szymon.expense_tracker.entity.*;
 import jedrzychowski.szymon.expense_tracker.exception.ReasonedResponseStatusException;
 import jedrzychowski.szymon.expense_tracker.repository.AccountRepository;
 import jedrzychowski.szymon.expense_tracker.repository.AccountStateRepository;
 import jedrzychowski.szymon.expense_tracker.repository.ExpenseRepository;
 import jedrzychowski.szymon.expense_tracker.repository.ExpenseTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -41,14 +38,16 @@ public class ExpenseController {
     /**
      * Get Expenses. These can be filtered by: Account ID, Start Date and End Date.
      *
+     * @param appUser   Currently Authorized AppUser.
      * @param accountId ID of Account used to filter.
-     * @param startDate LocalDate of AccountState used to filter.
-     * @param endDate   LocalDate of AccountState used to filter.
+     * @param startDate Starting LocalDate of AccountState used to filter.
+     * @param endDate   Ending LocalDate of AccountState used to filter.
      * @return List of Expense.
      * @throws ReasonedResponseStatusException when no Account with accountId ID is found.
      */
     @GetMapping
     public List<Expense> getAll(
+            @AuthenticationPrincipal AppUser appUser,
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate
@@ -67,17 +66,17 @@ public class ExpenseController {
         //Return all without filtering
         if (accountId == null) {
             return applyDateFilter(
-                    expenseRepository.findAll(Sort.by(Sort.Direction.ASC, "accountState.date")), startDate, endDate
+                    expenseRepository.findAllByAccount_AppUserOrderByAccountState_DateAsc(appUser), startDate, endDate
             );
         }
 
-        //Check if Account with specific ID exists.
-        if (!accountRepository.existsById(accountId)) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    String.format("Cannot find Account with ID: %d", accountId)
-            );
-        }
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ReasonedResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        String.format("Cannot find Account with ID: %d", accountId)
+                ));
+        account.validateIfAccountIsOwnedByCurrentUser(appUser);
+
         return applyDateFilter(
                 expenseRepository.findAllByAccountIdOrderByAccountState_DateAsc(accountId), startDate, endDate
         );
@@ -86,29 +85,34 @@ public class ExpenseController {
     /**
      * Gets the Expense by specified ID.
      *
-     * @param id of specific Expense.
+     * @param appUser Currently Authorized AppUser.
+     * @param id      of specific Expense.
      * @return Expense with specified ID.
      * @throws ReasonedResponseStatusException if no Expense with specific ID is found.
      */
     @GetMapping("/{id}")
-    public Expense getExpenseById(@PathVariable Long id) {
-        return expenseRepository.findById(id)
+    public Expense getExpenseById(@AuthenticationPrincipal AppUser appUser, @PathVariable Long id) {
+        Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ReasonedResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         String.format("Cannot find Expense with ID: %d", id)
                 ));
+        expense.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
+        return expense;
     }
 
     /**
      * Creates new Expense.
      *
+     * @param appUser                 Currently Authorized AppUser.
      * @param createExpenseRequestDTO CreateExpenseRequestDTO of the Account that is being created.
      * @return Account that was created.
      * @throws ReasonedResponseStatusException if validation fails or data is not found.
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Expense createExpense(@RequestBody @Valid CreateExpenseRequestDTO createExpenseRequestDTO) {
+    public Expense createExpense(@AuthenticationPrincipal AppUser appUser,
+                                 @RequestBody @Valid CreateExpenseRequestDTO createExpenseRequestDTO) {
         List<String> validation = createExpenseRequestDTO.validateEntity();
         if (!validation.isEmpty()) {
             throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, String.join("\n", validation));
@@ -120,6 +124,7 @@ public class ExpenseController {
                         HttpStatus.NOT_FOUND,
                         String.format("Cannot find Account with name: %s.", createExpenseRequestDTO.getAccountId())
                 ));
+        account.validateIfAccountIsOwnedByCurrentUser(appUser);
 
         //Find if Expense Type with given ID exists
         ExpenseType expenseType = expenseTypeRepository.findById(createExpenseRequestDTO.getExpenseTypeId())
@@ -171,12 +176,14 @@ public class ExpenseController {
     /**
      * Updates Expense.
      *
+     * @param appUser                 Currently Authorized AppUser.
      * @param updateExpenseRequestDTO UpdateAccountRequestDTO with information about updated Expense.
      * @return Updated Expense.
      * @throws ReasonedResponseStatusException if validation fails or Expense cannot be edited.
      */
     @PutMapping
-    public Expense updateExpense(@RequestBody @Valid UpdateExpenseRequestDTO updateExpenseRequestDTO) {
+    public Expense updateExpense(@AuthenticationPrincipal AppUser appUser,
+                                 @RequestBody @Valid UpdateExpenseRequestDTO updateExpenseRequestDTO) {
         List<String> validation = updateExpenseRequestDTO.validateEntity();
         if (!validation.isEmpty()) {
             throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, String.join("\n", validation));
@@ -191,12 +198,14 @@ public class ExpenseController {
 
         //Find if Account gets updated on Expense
         Account account = expenseToUpdate.getAccount();
+        account.validateIfAccountIsOwnedByCurrentUser(appUser);
         if (!Objects.equals(updateExpenseRequestDTO.getAccountId(), account.getId())) {
             account = accountRepository.findById(updateExpenseRequestDTO.getAccountId())
                     .orElseThrow(() -> new ReasonedResponseStatusException(
                             HttpStatus.NOT_FOUND,
                             String.format("Cannot find Account with ID: %d.", updateExpenseRequestDTO.getAccountId())
                     ));
+            account.validateIfAccountIsOwnedByCurrentUser(appUser);
         }
 
         //Find if ExpenseType gets updated on Expense
@@ -266,18 +275,21 @@ public class ExpenseController {
     /**
      * Deletes the Expense.
      *
-     * @param id of Expense to remove.
+     * @param appUser Currently Authorized AppUser.
+     * @param id      of Expense to remove.
      * @throws ReasonedResponseStatusException if Expense cannot be found.
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteExpense(@PathVariable Long id) {
+    public void deleteExpense(@AuthenticationPrincipal AppUser appUser,
+                              @PathVariable Long id) {
         //Find Expense to delete
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ReasonedResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         String.format("Cannot find Expense with ID: %d.", id)
                 ));
+        expense.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
 
         //Recalculate the amounts from AccountState
         AccountState accountState = expense.getAccountState();
@@ -297,7 +309,7 @@ public class ExpenseController {
      */
     private void updateFutureAccountStates(AccountState accountState) {
         //Get the list of AccountStates to update
-        List<AccountState> accountStates = accountStateRepository.findByAccountAndDateGreaterThanOrderByDateAsc(
+        List<AccountState> accountStates = accountStateRepository.findAllByAccountAndDateGreaterThanOrderByDateAsc(
                 accountState.getAccount(), accountState.getDate()
         );
 
@@ -318,9 +330,9 @@ public class ExpenseController {
     /**
      * Filters the List of Expenses with dates.
      *
-     * @param expenses List of Expenses to filter.
-     * @param startDate   First date that will be included in the List of Expenses.
-     * @param endDate     Last date that will be included in the List of Expenses.
+     * @param expenses  List of Expenses to filter.
+     * @param startDate First date that will be included in the List of Expenses.
+     * @param endDate   Last date that will be included in the List of Expenses.
      * @return Filtered List of Expenses.
      */
     private List<Expense> applyDateFilter(List<Expense> expenses, LocalDate startDate, LocalDate endDate) {
