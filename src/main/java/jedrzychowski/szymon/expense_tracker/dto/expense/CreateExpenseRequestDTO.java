@@ -38,19 +38,19 @@ public class CreateExpenseRequestDTO {
     }
 
     public List<String> validateEntity() {
-        List<String> validations = new ArrayList<>();
+        List<String> validationErrors = new ArrayList<>();
         if (movementAmount == null || movementAmount == 0) {
-            validations.add("Movement Amount must be non-null and non-zero.");
+            validationErrors.add("Movement Amount must be non-null and non-zero.");
         }
 
         if (refundAmount != null && refundAmount < 0) {
-            validations.add("Refund Amount must be positive.");
+            validationErrors.add("Refund Amount must be positive.");
         }
 
         if (refundAmount != null && refundAmount > 0 && movementAmount != null && movementAmount > 0) {
-            validations.add("Movement Amount must be negative to have a non-zero Refund Amount.");
+            validationErrors.add("Movement Amount must be negative to have a non-zero Refund Amount.");
         }
-        return validations;
+        return validationErrors;
     }
 
     public LocalDate getDate() {

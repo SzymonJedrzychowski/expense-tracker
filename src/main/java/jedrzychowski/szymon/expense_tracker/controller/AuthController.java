@@ -1,5 +1,6 @@
 package jedrzychowski.szymon.expense_tracker.controller;
 
+import jakarta.validation.Valid;
 import jedrzychowski.szymon.expense_tracker.config.auth.JwtUtil;
 import jedrzychowski.szymon.expense_tracker.dto.auth.AuthRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.AppUser;
@@ -37,19 +38,28 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
-    public String login(@RequestBody AuthRequestDTO authRequestDTO) {
+    public String login(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
         try {
             authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequestDTO.getUsername(), authRequestDTO.getPassword())
             );
             return jwtUtil.generateToken(authRequestDTO.getUsername());
         } catch (AuthenticationException e) {
-            throw new ReasonedResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username/password");
+            throw new ReasonedResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username/password.");
         }
     }
 
     @PostMapping("/register")
     public void register(@RequestBody AuthRequestDTO authRequestDTO) {
+        if (appUserRepository.findByUsername(authRequestDTO.getUsername()).isPresent()) {
+            throw new ReasonedResponseStatusException(HttpStatus.CONFLICT, "Username already taken.");
+        }
+
+        List<String> validationResults = authRequestDTO.validateEntity();
+        if(!validationResults.isEmpty()){
+            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, validationResults);
+        }
+
         Role userRole = roleRepository.findByName("ROLE_USER");
         AppUser appUser = new AppUser(
                 authRequestDTO.getUsername(),

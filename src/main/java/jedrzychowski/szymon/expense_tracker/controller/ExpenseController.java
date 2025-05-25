@@ -113,9 +113,9 @@ public class ExpenseController {
     @ResponseStatus(HttpStatus.CREATED)
     public Expense createExpense(@AuthenticationPrincipal AppUser appUser,
                                  @RequestBody @Valid CreateExpenseRequestDTO createExpenseRequestDTO) {
-        List<String> validation = createExpenseRequestDTO.validateEntity();
-        if (!validation.isEmpty()) {
-            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, String.join("\n", validation));
+        List<String> validationResults = createExpenseRequestDTO.validateEntity();
+        if (!validationResults.isEmpty()) {
+            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, validationResults);
         }
 
         //Find if Account with given ID exists
@@ -184,9 +184,9 @@ public class ExpenseController {
     @PutMapping
     public Expense updateExpense(@AuthenticationPrincipal AppUser appUser,
                                  @RequestBody @Valid UpdateExpenseRequestDTO updateExpenseRequestDTO) {
-        List<String> validation = updateExpenseRequestDTO.validateEntity();
-        if (!validation.isEmpty()) {
-            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, String.join("\n", validation));
+        List<String> validationResults = updateExpenseRequestDTO.validateEntity();
+        if (!validationResults.isEmpty()) {
+            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, validationResults);
         }
 
         //Find the Expense to update
