@@ -43,8 +43,12 @@ public class AccountState {
     public AccountState() {
     }
 
-    public AccountState(LocalDate date, Float currentAmount, Float negativeMovement, Float positiveMovement,
-                        Float refundAmount, Account account) {
+    public AccountState(LocalDate date,
+                        Float currentAmount,
+                        Float negativeMovement,
+                        Float positiveMovement,
+                        Float refundAmount,
+                        Account account) {
         this.date = date;
         this.currentAmount = currentAmount;
         this.negativeMovement = negativeMovement;

@@ -15,9 +15,11 @@ public interface AccountStateRepository extends JpaRepository<AccountState, Long
 
     List<AccountState> findAllByAccountIdOrderByDateAsc(Long accountId);
 
-    List<AccountState> findAllByAccountAndDateGreaterThanOrderByDateAsc(Account account, LocalDate date);
+    List<AccountState> findAllByAccountAndDateGreaterThanOrderByDateAsc(Account account,
+                                                                        LocalDate date);
 
     List<AccountState> findAllByAccount_AppUserOrderByDateAsc(AppUser appUser);
 
-    Optional<AccountState> findFirstByAccountAndDateBeforeOrderByDateDesc(Account account, LocalDate date);
+    Optional<AccountState> findFirstByAccountAndDateBeforeOrderByDateDesc(Account account,
+                                                                          LocalDate date);
 }

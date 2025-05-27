@@ -12,6 +12,6 @@ public interface ExpenseTypeRepository extends JpaRepository<ExpenseType, Long> 
 
     List<ExpenseType> findAllByAccount_AppUser(AppUser appUser);
 
-    Boolean existsByNameAndAccountId(String name, Long accountId);
-
+    Boolean existsByNameAndAccountId(String name,
+                                     Long accountId);
 }

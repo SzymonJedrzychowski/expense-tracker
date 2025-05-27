@@ -1,7 +1,7 @@
-package jedrzychowski.szymon.expense_tracker.handler;
+package jedrzychowski.szymon.expense_tracker.config.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jedrzychowski.szymon.expense_tracker.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -56,9 +56,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<Object> handleUsernameNotFoundExceptionException(UsernameNotFoundException exception,
                                                                            HttpServletRequest request) {
-        int statusCode = 403;
-        HttpStatus httpStatus = HttpStatus.resolve(statusCode);
-        String errorValue = httpStatus != null ? httpStatus.getReasonPhrase() : "";
+        HttpStatus httpStatus = HttpStatus.FORBIDDEN;
+        int statusCode = httpStatus.value();
+        String errorValue = httpStatus.getReasonPhrase();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", ZonedDateTime.now());
         body.put("status", statusCode);

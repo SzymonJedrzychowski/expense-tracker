@@ -1,4 +1,4 @@
-package jedrzychowski.szymon.expense_tracker.exception;
+package jedrzychowski.szymon.expense_tracker.config.exception;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -13,12 +13,14 @@ public class ReasonedResponseStatusException extends ResponseStatusException {
 
     private final List<String> reasons;
 
-    public ReasonedResponseStatusException(@NotNull HttpStatusCode status, @NotBlank String reason) {
+    public ReasonedResponseStatusException(@NotNull HttpStatusCode status,
+                                           @NotBlank String reason) {
         super(status, reason);
         this.reasons = List.of(reason);
     }
 
-    public ReasonedResponseStatusException(@NotNull HttpStatus status, @NotEmpty List<String> reasons) {
+    public ReasonedResponseStatusException(@NotNull HttpStatus status,
+                                           @NotEmpty List<String> reasons) {
         super(status, String.join("\n", reasons));
         this.reasons = reasons;
     }

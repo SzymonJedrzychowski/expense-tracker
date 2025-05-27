@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
-import jedrzychowski.szymon.expense_tracker.dto.expense.CreateExpenseRequestDTO;
-import jedrzychowski.szymon.expense_tracker.dto.expense.UpdateExpenseRequestDTO;
+import jedrzychowski.szymon.expense_tracker.entity.dto.expense.CreateExpenseRequestDTO;
+import jedrzychowski.szymon.expense_tracker.entity.dto.expense.UpdateExpenseRequestDTO;
 
 import java.time.LocalDate;
 
@@ -46,8 +46,12 @@ public class Expense {
     public Expense() {
     }
 
-    public Expense(Float movementAmount, Float refundAmount, ExpenseType expenseType,
-                   String description, AccountState accountState, Account account) {
+    public Expense(Float movementAmount,
+                   Float refundAmount,
+                   ExpenseType expenseType,
+                   String description,
+                   AccountState accountState,
+                   Account account) {
         this.movementAmount = movementAmount;
         setRefundAmount(refundAmount);
         this.expenseType = expenseType;
@@ -56,20 +60,26 @@ public class Expense {
         this.account = account;
     }
 
-    public Expense(CreateExpenseRequestDTO createExpenseRequestDTO, ExpenseType expenseType, AccountState accountState, Account account) {
-        this.movementAmount = createExpenseRequestDTO.getMovementAmount();
-        setRefundAmount(createExpenseRequestDTO.getRefundAmount());
+    public Expense(CreateExpenseRequestDTO createExpenseRequestDTO,
+                   ExpenseType expenseType,
+                   AccountState accountState,
+                   Account account) {
+        this.movementAmount = createExpenseRequestDTO.movementAmount();
+        setRefundAmount(createExpenseRequestDTO.refundAmount());
         this.expenseType = expenseType;
-        this.description = createExpenseRequestDTO.getDescription();
+        this.description = createExpenseRequestDTO.description();
         this.accountState = accountState;
         this.account = account;
     }
 
-    public void updateExpense(UpdateExpenseRequestDTO updateExpenseRequestDTO, ExpenseType expenseType, AccountState accountState, Account account) {
-        this.movementAmount = updateExpenseRequestDTO.getMovementAmount();
-        this.refundAmount = updateExpenseRequestDTO.getRefundAmount();
+    public void updateExpense(UpdateExpenseRequestDTO updateExpenseRequestDTO,
+                              ExpenseType expenseType,
+                              AccountState accountState,
+                              Account account) {
+        this.movementAmount = updateExpenseRequestDTO.movementAmount();
+        this.refundAmount = updateExpenseRequestDTO.refundAmount();
         this.expenseType = expenseType;
-        this.description = updateExpenseRequestDTO.getDescription();
+        this.description = updateExpenseRequestDTO.description();
         this.accountState = accountState;
         this.account = account;
 

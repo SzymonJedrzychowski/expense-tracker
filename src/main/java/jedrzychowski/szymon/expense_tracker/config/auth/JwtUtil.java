@@ -1,9 +1,11 @@
 package jedrzychowski.szymon.expense_tracker.config.auth;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
+import jedrzychowski.szymon.expense_tracker.config.property.AuthProperties;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -13,14 +15,16 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${JWT_SECRET_KEY}")
-    private String jwtSecret;
-
+    private final AuthProperties authProperties;
     private Key SECRET_KEY;
 
+    public JwtUtil(AuthProperties authProperties) {
+        this.authProperties = authProperties;
+    }
+
     @PostConstruct
-    public void init() {
-        this.SECRET_KEY = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    public void init(){
+        SECRET_KEY = Keys.hmacShaKeyFor(authProperties.getJwtSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String username) {
@@ -42,7 +46,8 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    public boolean validateToken(String token, String username) {
+    public boolean validateToken(String token,
+                                 String username) {
         try {
             String extractedUsername = extractUsername(token);
             return extractedUsername.equals(username) && !isTokenExpired(token);

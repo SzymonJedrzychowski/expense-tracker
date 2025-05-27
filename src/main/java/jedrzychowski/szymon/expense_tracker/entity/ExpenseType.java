@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
-import jedrzychowski.szymon.expense_tracker.dto.expenseType.CreateExpenseTypeRequestDTO;
-import jedrzychowski.szymon.expense_tracker.dto.expenseType.UpdateExpenseTypeRequestDTO;
+import jedrzychowski.szymon.expense_tracker.entity.dto.expenseType.CreateExpenseTypeRequestDTO;
+import jedrzychowski.szymon.expense_tracker.entity.dto.expenseType.UpdateExpenseTypeRequestDTO;
 
 @Entity
 public class ExpenseType {
@@ -25,17 +25,20 @@ public class ExpenseType {
     public ExpenseType() {
     }
 
-    public ExpenseType(String name, Account account) {
+    public ExpenseType(String name,
+                       Account account) {
         this.name = name;
         this.account = account;
     }
 
-    public ExpenseType(CreateExpenseTypeRequestDTO createExpenseTypeRequestDTO, Account account){
-        this(createExpenseTypeRequestDTO.getName(), account);
+    public ExpenseType(CreateExpenseTypeRequestDTO createExpenseTypeRequestDTO,
+                       Account account) {
+        this(createExpenseTypeRequestDTO.name(), account);
     }
 
-    public void updateExpenseType(UpdateExpenseTypeRequestDTO updateExpenseTypeRequestDTO, Account account) {
-        this.name = updateExpenseTypeRequestDTO.getName();
+    public void updateExpenseType(UpdateExpenseTypeRequestDTO updateExpenseTypeRequestDTO,
+                                  Account account) {
+        this.name = updateExpenseTypeRequestDTO.name();
         this.account = account;
     }
 

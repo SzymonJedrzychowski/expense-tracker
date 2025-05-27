@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
-import jedrzychowski.szymon.expense_tracker.dto.account.CreateAccountRequestDTO;
-import jedrzychowski.szymon.expense_tracker.dto.account.UpdateAccountRequestDTO;
-import jedrzychowski.szymon.expense_tracker.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.entity.dto.account.CreateAccountRequestDTO;
+import jedrzychowski.szymon.expense_tracker.entity.dto.account.UpdateAccountRequestDTO;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
@@ -37,13 +37,14 @@ public class Account {
         this.name = name;
     }
 
-    public Account(CreateAccountRequestDTO createAccountRequestDto, AppUser appUser) {
-        this.name = createAccountRequestDto.getName();
+    public Account(CreateAccountRequestDTO createAccountRequestDto,
+                   AppUser appUser) {
+        this.name = createAccountRequestDto.name();
         this.appUser = appUser;
     }
 
     public void update(UpdateAccountRequestDTO updateAccountRequestDTO) {
-        this.name = updateAccountRequestDTO.getName();
+        this.name = updateAccountRequestDTO.name();
     }
 
     public Long getId() {
