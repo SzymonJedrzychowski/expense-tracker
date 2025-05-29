@@ -1,7 +1,7 @@
 package jedrzychowski.szymon.expense_tracker.service;
 
 import jakarta.validation.Valid;
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.*;
 import jedrzychowski.szymon.expense_tracker.entity.Account;
 import jedrzychowski.szymon.expense_tracker.entity.AppUser;
 import jedrzychowski.szymon.expense_tracker.entity.ExpenseType;
@@ -32,7 +32,7 @@ public class ExpenseTypeService {
     }
 
     public List<ExpenseType> getAllExpenseTypes(AppUser appUser,
-                                                Long accountId) {
+                                                Long accountId) throws DataNotFoundException, UnauthorizedUserAccessException {
         //Return all without filtering
         if (accountId == null) {
             return expenseTypeRepository.findAllByAccount_AppUser(appUser);
@@ -40,9 +40,8 @@ public class ExpenseTypeService {
 
         //Check if Account with specific ID exists.
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Cannot find Account with ID: %d", accountId)
+                .orElseThrow(() -> new DataNotFoundException(
+                        String.format("Cannot find Account with ID: %d.", accountId)
                 ));
 
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
@@ -51,11 +50,10 @@ public class ExpenseTypeService {
     }
 
     public ExpenseType getExpenseTypeById(AppUser appUser,
-                                          Long id) {
+                                          Long id) throws DataNotFoundException, UnauthorizedUserAccessException {
         ExpenseType expenseType = expenseTypeRepository.findById(id)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Cannot find ExpenseType with ID: %d", id)
+                .orElseThrow(() -> new DataNotFoundException(
+                        String.format("Cannot find ExpenseType with ID: %d.", id)
                 ));
 
         expenseType.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
@@ -63,12 +61,11 @@ public class ExpenseTypeService {
     }
 
     public ExpenseType createExpenseType(AppUser appUser,
-                                         @Valid CreateExpenseTypeRequestDTO createExpenseTypeRequestDTO) {
+                                         @Valid CreateExpenseTypeRequestDTO createExpenseTypeRequestDTO) throws DataNotFoundException, UnauthorizedUserAccessException, DataConflictException {
         //Find Account for the ExpenseType
         Account account = accountRepository.findById(createExpenseTypeRequestDTO.accountId())
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Cannot find Account with ID: %d", createExpenseTypeRequestDTO.accountId())
+                .orElseThrow(() -> new DataNotFoundException(
+                        String.format("Cannot find Account with ID: %d.", createExpenseTypeRequestDTO.accountId())
                 ));
 
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
@@ -76,9 +73,8 @@ public class ExpenseTypeService {
         //Find if Expense Type would be a duplicate
         if (expenseTypeRepository.existsByNameAndAccountId(
                 createExpenseTypeRequestDTO.name(), createExpenseTypeRequestDTO.accountId())) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    String.format("ExpenseType with name: %s already exists for Account with ID: %d",
+            throw new DataConflictException(
+                    String.format("ExpenseType with name: %s already exists for Account with ID: %d.",
                             createExpenseTypeRequestDTO.name(), createExpenseTypeRequestDTO.accountId())
             );
         }
@@ -90,11 +86,10 @@ public class ExpenseTypeService {
     }
 
     public ExpenseType updateExpenseType(AppUser appUser,
-                                         @Valid UpdateExpenseTypeRequestDTO updateExpenseTypeRequestDTO) {
+                                         @Valid UpdateExpenseTypeRequestDTO updateExpenseTypeRequestDTO) throws DataNotFoundException, UnauthorizedUserAccessException, DataConflictException {
         //Find the ExpenseType to update
         ExpenseType expenseTypeToUpdate = expenseTypeRepository.findById(updateExpenseTypeRequestDTO.id())
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find ExpenseType with ID %d.", updateExpenseTypeRequestDTO.id())
                 ));
 
@@ -102,8 +97,7 @@ public class ExpenseTypeService {
 
         //Find the account to be updated for ExpenseType
         Account newAccount = accountRepository.findById(updateExpenseTypeRequestDTO.accountId())
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Account with ID %d.", updateExpenseTypeRequestDTO.accountId())
                 ));
 
@@ -112,8 +106,7 @@ public class ExpenseTypeService {
         //Check if the ExpenseType is used by previous Account (if Account changes)
         if (!Objects.equals(updateExpenseTypeRequestDTO.accountId(), expenseTypeToUpdate.getAccount().getId())
                 && expenseRepository.existsByExpenseType(expenseTypeToUpdate)) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+            throw new DataConflictException(
                     String.format("Account with Name: %s has existing Expenses with ExpenseType with Name: %s.",
                             expenseTypeToUpdate.getAccount().getName(), expenseTypeToUpdate.getName()));
         }
@@ -122,8 +115,7 @@ public class ExpenseTypeService {
         if (expenseTypeRepository.existsByNameAndAccountId(
                 updateExpenseTypeRequestDTO.name(), updateExpenseTypeRequestDTO.accountId()
         )) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+            throw new DataConflictException(
                     String.format("ExpenseType with name: %s already exists for Account with ID: %d",
                             updateExpenseTypeRequestDTO.name(), updateExpenseTypeRequestDTO.accountId()
                     ));
@@ -136,11 +128,10 @@ public class ExpenseTypeService {
     }
 
     public void deleteExpenseType(AppUser appUser,
-                                  Long id) {
+                                  Long id) throws DataNotFoundException, UnauthorizedUserAccessException, DataConflictException {
         //Find the ExpenseType to update
         ExpenseType expenseTypeToDelete = expenseTypeRepository.findById(id)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find ExpenseType with ID %d.", id)
                 ));
 
@@ -148,8 +139,7 @@ public class ExpenseTypeService {
 
         //Check if the ExpenseType is used by previous Account (if Account changes)
         if (expenseRepository.existsByExpenseType(expenseTypeToDelete)) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+            throw new DataConflictException(
                     String.format("Account with Name: %s has existing Expenses with ExpenseType with Name: %s.",
                             expenseTypeToDelete.getAccount().getName(), expenseTypeToDelete.getName()));
         }

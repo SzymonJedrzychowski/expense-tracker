@@ -5,10 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.UnauthorizedUserAccessException;
 import jedrzychowski.szymon.expense_tracker.entity.dto.account.CreateAccountRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.dto.account.UpdateAccountRequestDTO;
-import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -75,11 +74,9 @@ public class Account {
         this.appUser = appUser;
     }
 
-    public void validateIfAccountIsOwnedByCurrentUser(AppUser appUser) {
-        if (this.appUser.equals(appUser)) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Account is not owned by authorised user.");
+    public void validateIfAccountIsOwnedByCurrentUser(AppUser appUser) throws UnauthorizedUserAccessException {
+        if (!this.appUser.equals(appUser)) {
+            throw new UnauthorizedUserAccessException("Account is not owned by authorised user.");
         }
     }
 }

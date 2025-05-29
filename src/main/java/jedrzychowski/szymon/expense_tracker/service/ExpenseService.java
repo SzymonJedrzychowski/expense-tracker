@@ -1,7 +1,7 @@
 package jedrzychowski.szymon.expense_tracker.service;
 
 import jakarta.validation.Valid;
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.*;
 import jedrzychowski.szymon.expense_tracker.entity.*;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expense.CreateExpenseRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expense.UpdateExpenseRequestDTO;
@@ -9,7 +9,6 @@ import jedrzychowski.szymon.expense_tracker.repository.AccountRepository;
 import jedrzychowski.szymon.expense_tracker.repository.AccountStateRepository;
 import jedrzychowski.szymon.expense_tracker.repository.ExpenseRepository;
 import jedrzychowski.szymon.expense_tracker.repository.ExpenseTypeRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -39,14 +38,13 @@ public class ExpenseService {
     public List<Expense> getAllExpenses(AppUser appUser,
                                         Long accountId,
                                         LocalDate startDate,
-                                        LocalDate endDate) {
+                                        LocalDate endDate) throws ParamValidationException, DataNotFoundException, UnauthorizedUserAccessException {
         //Update startDate and endDate in case of null values
         startDate = startDate == null ? LocalDate.of(0, 1, 1) : startDate;
         endDate = endDate == null ? LocalDate.of(9999, 12, 31) : endDate;
 
         if (startDate.isAfter(endDate)) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+            throw new ParamValidationException(
                     String.format("startDate (%s) cannot be after endDate (%s)", startDate, endDate)
             );
         }
@@ -59,8 +57,7 @@ public class ExpenseService {
         }
 
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Account with ID: %d", accountId)
                 ));
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
@@ -71,10 +68,9 @@ public class ExpenseService {
     }
 
     public Expense getExpenseById(AppUser appUser,
-                                  Long id) {
+                                  Long id) throws DataNotFoundException, UnauthorizedUserAccessException {
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Expense with ID: %d", id)
                 ));
         expense.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
@@ -83,35 +79,31 @@ public class ExpenseService {
 
 
     public Expense createExpense(AppUser appUser,
-                                 @Valid CreateExpenseRequestDTO createExpenseRequestDTO) {
+                                 @Valid CreateExpenseRequestDTO createExpenseRequestDTO) throws DataValidationException, UnauthorizedUserAccessException, DataNotFoundException, ForbiddenActionException {
         List<String> validationResults = createExpenseRequestDTO.validateDTO();
         if (!validationResults.isEmpty()) {
-            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, validationResults);
+            throw new DataValidationException(validationResults);
         }
 
         //Find if Account with given ID exists
         Account account = accountRepository.findById(createExpenseRequestDTO.accountId())
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Account with name: %s.", createExpenseRequestDTO.accountId())
                 ));
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
 
         //Find if Expense Type with given ID exists
         ExpenseType expenseType = expenseTypeRepository.findById(createExpenseRequestDTO.expenseTypeId())
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Expense Type with ID: %d", createExpenseRequestDTO.expenseTypeId())
                 ));
 
         //Find if Expense Type can be used for the Account
         if (expenseType.getAccount() != account) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    String.format("Expense Type with ID: %d and name: %s cannot be used for Account with name: %s " +
-                                    "and can be used only for Account with name: %s",
-                            expenseType.getId(), expenseType.getName(), account.getName(),
-                            expenseType.getAccount().getName())
+            throw new ForbiddenActionException(
+                    String.format("Expense Type with ID: %d and name: %s cannot be used for Account with ID %d.",
+                            expenseType.getId(), expenseType.getName(), account.getId()
+                    )
             );
         }
 
@@ -145,16 +137,15 @@ public class ExpenseService {
     }
 
     public Expense updateExpense(AppUser appUser,
-                                 @Valid UpdateExpenseRequestDTO updateExpenseRequestDTO) {
+                                 @Valid UpdateExpenseRequestDTO updateExpenseRequestDTO) throws DataValidationException, DataNotFoundException, UnauthorizedUserAccessException, ForbiddenActionException {
         List<String> validationResults = updateExpenseRequestDTO.validateDTO();
         if (!validationResults.isEmpty()) {
-            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, validationResults);
+            throw new DataValidationException(validationResults);
         }
 
         //Find the Expense to update
         Expense expenseToUpdate = expenseRepository.findById(updateExpenseRequestDTO.id())
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Expense with ID %d.", updateExpenseRequestDTO.id())
                 ));
 
@@ -163,8 +154,7 @@ public class ExpenseService {
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
         if (!Objects.equals(updateExpenseRequestDTO.accountId(), account.getId())) {
             account = accountRepository.findById(updateExpenseRequestDTO.accountId())
-                    .orElseThrow(() -> new ReasonedResponseStatusException(
-                            HttpStatus.NOT_FOUND,
+                    .orElseThrow(() -> new DataNotFoundException(
                             String.format("Cannot find Account with ID: %d.", updateExpenseRequestDTO.accountId())
                     ));
             account.validateIfAccountIsOwnedByCurrentUser(appUser);
@@ -174,17 +164,15 @@ public class ExpenseService {
         ExpenseType expenseType = expenseToUpdate.getExpenseType();
         if (Objects.equals(updateExpenseRequestDTO.expenseTypeId(), expenseType.getId())) {
             expenseType = expenseTypeRepository.findById(updateExpenseRequestDTO.expenseTypeId())
-                    .orElseThrow(() -> new ReasonedResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            String.format("Cannot find Expense Type with ID: %d",
+                    .orElseThrow(() -> new DataNotFoundException(
+                            String.format("Cannot find Expense Type with ID: %d.",
                                     updateExpenseRequestDTO.expenseTypeId())
                     ));
         }
 
         //Find if Expense Type can be used for the Account
         if (expenseType.getAccount() != account) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.FORBIDDEN,
+            throw new ForbiddenActionException(
                     String.format("Expense Type with ID: %d and name: %s cannot be used for Account with name: %s " +
                                     "and can be used only for Account with name: %s",
                             expenseType.getId(), expenseType.getName(), account.getName(),
@@ -235,11 +223,10 @@ public class ExpenseService {
     }
 
     public void deleteExpense(AppUser appUser,
-                              Long id) {
+                              Long id) throws DataNotFoundException, UnauthorizedUserAccessException {
         //Find Expense to delete
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Expense with ID: %d.", id)
                 ));
         expense.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);

@@ -15,6 +15,11 @@ public class HealthCheckController {
         this.healthCheckService = healthCheckService;
     }
 
+    /**
+     * Performs a health check of the application.
+     *
+     * @return a status message indicating the health of the application
+     */
     @GetMapping
     public String getHealthCheck() {
         return healthCheckService.getHealthCheck();

@@ -1,6 +1,8 @@
 package jedrzychowski.szymon.expense_tracker.controller;
 
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.DataNotFoundException;
+import jedrzychowski.szymon.expense_tracker.config.exception.ParamValidationException;
+import jedrzychowski.szymon.expense_tracker.config.exception.UnauthorizedUserAccessException;
 import jedrzychowski.szymon.expense_tracker.entity.AccountState;
 import jedrzychowski.szymon.expense_tracker.entity.AppUser;
 import jedrzychowski.szymon.expense_tracker.service.AccountStateService;
@@ -21,14 +23,16 @@ public class AccountStateController {
     }
 
     /**
-     * Get AccountStates. These can be filtered by: Account ID.
+     * Retrieves AccountStates, optionally filtered by Account ID and date range.
      *
-     * @param appUser   Currently Authorized AppUser.
-     * @param accountId ID of Account used to filter.
-     * @param startDate Starting LocalDate used for the filter.
-     * @param endDate   Ending LocalDate used for the filter.
-     * @return List of AccountStates.
-     * @throws ReasonedResponseStatusException when no Account with accountId ID is found.
+     * @param appUser   the currently authorized AppUser
+     * @param accountId optional ID of the Account to filter by
+     * @param startDate optional start date for filtering AccountStates
+     * @param endDate   optional end date for filtering AccountStates
+     * @return a list of AccountStates matching the filters
+     * @throws ParamValidationException        if startDate is later than endDate
+     * @throws DataNotFoundException           if no account with the specified accountId is found
+     * @throws UnauthorizedUserAccessException if the account does not belong to the authorized user
      */
     @GetMapping
     public List<AccountState> getAllAccountStates(@AuthenticationPrincipal AppUser appUser,
@@ -39,12 +43,13 @@ public class AccountStateController {
     }
 
     /**
-     * Gets the AccountState by specified ID.
+     * Retrieves the AccountState with the specified ID.
      *
-     * @param appUser Currently Authorized AppUser.
-     * @param id      of specific AccountState.
-     * @return AccountState with specified ID.
-     * @throws ReasonedResponseStatusException if no AccountState with specific ID is found.
+     * @param appUser the currently authorized AppUser
+     * @param id      the ID of the AccountState to retrieve
+     * @return the AccountState with the specified ID
+     * @throws DataNotFoundException           if no AccountState with the specified ID is found
+     * @throws UnauthorizedUserAccessException if the account does not belong to the authorized user
      */
     @GetMapping("/{id}")
     public AccountState getAccountStateById(@AuthenticationPrincipal AppUser appUser,

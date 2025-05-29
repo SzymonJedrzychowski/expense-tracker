@@ -9,7 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-public class ReasonedResponseStatusException extends ResponseStatusException {
+abstract public class ReasonedResponseStatusException extends ResponseStatusException {
 
     private final List<String> reasons;
 
@@ -19,7 +19,7 @@ public class ReasonedResponseStatusException extends ResponseStatusException {
         this.reasons = List.of(reason);
     }
 
-    public ReasonedResponseStatusException(@NotNull HttpStatus status,
+    protected ReasonedResponseStatusException(@NotNull HttpStatus status,
                                            @NotEmpty List<String> reasons) {
         super(status, String.join("\n", reasons));
         this.reasons = reasons;

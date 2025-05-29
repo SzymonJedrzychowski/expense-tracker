@@ -1,12 +1,11 @@
 package jedrzychowski.szymon.expense_tracker.service;
 
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.*;
 import jedrzychowski.szymon.expense_tracker.entity.Account;
 import jedrzychowski.szymon.expense_tracker.entity.AccountState;
 import jedrzychowski.szymon.expense_tracker.entity.AppUser;
 import jedrzychowski.szymon.expense_tracker.repository.AccountRepository;
 import jedrzychowski.szymon.expense_tracker.repository.AccountStateRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -28,15 +27,14 @@ public class AccountStateService {
     public List<AccountState> getAllAccountStates(AppUser appUser,
                                                   Long accountId,
                                                   LocalDate startDate,
-                                                  LocalDate endDate) {
+                                                  LocalDate endDate) throws DataNotFoundException, ParamValidationException, UnauthorizedUserAccessException {
         //Update startDate and endDate in case of null values
         startDate = startDate == null ? LocalDate.of(0, 1, 1) : startDate;
         endDate = endDate == null ? LocalDate.of(9999, 12, 31) : endDate;
 
         if (startDate.isAfter(endDate)) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    String.format("startDate (%s) cannot be after endDate (%s)", startDate, endDate)
+            throw new ParamValidationException(
+                    String.format("startDate (%s) cannot be after endDate (%s).", startDate, endDate)
             );
         }
 
@@ -49,20 +47,18 @@ public class AccountStateService {
 
         //Check if Account with specific ID exists.
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Cannot find Account with ID: %d", accountId)
+                .orElseThrow(() -> new DataNotFoundException(
+                        String.format("Cannot find Account with ID: %d.", accountId)
                 ));
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
         return applyDateFilter(accountStateRepository.findAllByAccountIdOrderByDateAsc(accountId), startDate, endDate);
     }
 
     public AccountState getAccountStateById(AppUser appUser,
-                                            Long id) {
+                                            Long id) throws DataNotFoundException, UnauthorizedUserAccessException {
         AccountState accountState = accountStateRepository.findById(id)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Cannot find Account State with ID: %d", id)
+                .orElseThrow(() -> new DataNotFoundException(
+                        String.format("Cannot find Account State with ID: %d.", id)
                 ));
         accountState.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
         return accountState;

@@ -1,14 +1,15 @@
 package jedrzychowski.szymon.expense_tracker.service;
 
 import jakarta.validation.Valid;
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.DataConflictException;
+import jedrzychowski.szymon.expense_tracker.config.exception.DataNotFoundException;
+import jedrzychowski.szymon.expense_tracker.config.exception.UnauthorizedUserAccessException;
 import jedrzychowski.szymon.expense_tracker.entity.dto.account.CreateAccountRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.dto.account.UpdateAccountRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.Account;
 import jedrzychowski.szymon.expense_tracker.entity.AppUser;
 import jedrzychowski.szymon.expense_tracker.repository.AccountRepository;
 import jedrzychowski.szymon.expense_tracker.repository.ExpenseRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,11 +31,10 @@ public class AccountService {
     }
 
     public Account getAccountById(AppUser appUser,
-                                  Long id) {
+                                  Long id) throws DataNotFoundException, UnauthorizedUserAccessException {
         Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Cannot find Account with ID: %d", id)
+                .orElseThrow(() -> new DataNotFoundException(
+                        String.format("Cannot find Account with ID: %d.", id)
                 ));
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
         return account;
@@ -49,11 +49,10 @@ public class AccountService {
 
 
     public Account updateAccount(AppUser appUser,
-                                 @Valid UpdateAccountRequestDTO updateAccountRequestDTO) {
+                                 @Valid UpdateAccountRequestDTO updateAccountRequestDTO) throws DataNotFoundException, UnauthorizedUserAccessException {
         //Find account to update
         Account accountToUpdate = accountRepository.findById(updateAccountRequestDTO.id())
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Account with ID: %d.", updateAccountRequestDTO.id())
                 ));
         accountToUpdate.validateIfAccountIsOwnedByCurrentUser(appUser);
@@ -65,11 +64,10 @@ public class AccountService {
 
     public void deleteAccount(AppUser appUser,
                               Long id,
-                              boolean deleteExpenses) {
+                              boolean deleteExpenses) throws DataNotFoundException, DataConflictException, UnauthorizedUserAccessException {
         //Find Account to delete
         Account accountToDelete = accountRepository.findById(id)
-                .orElseThrow(() -> new ReasonedResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new DataNotFoundException(
                         String.format("Cannot find Account with ID: %d.", id)
                 ));
 
@@ -78,8 +76,7 @@ public class AccountService {
         //Validate that no expenses exist with this Account
         int expensesWithAccount = expenseRepository.countByAccount(accountToDelete);
         if (expensesWithAccount > 0 && !deleteExpenses) {
-            throw new ReasonedResponseStatusException(
-                    HttpStatus.CONFLICT,
+            throw new DataConflictException(
                     String.format("Account with ID: %d and Name: %s is used by existing Expense records.",
                             accountToDelete.getId(), accountToDelete.getName())
             );

@@ -1,7 +1,10 @@
 package jedrzychowski.szymon.expense_tracker.controller;
 
 import jakarta.validation.Valid;
+import jedrzychowski.szymon.expense_tracker.config.exception.DataConflictException;
+import jedrzychowski.szymon.expense_tracker.config.exception.DataNotFoundException;
 import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.UnauthorizedUserAccessException;
 import jedrzychowski.szymon.expense_tracker.entity.dto.account.CreateAccountRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.dto.account.UpdateAccountRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.Account;
@@ -24,10 +27,10 @@ public class AccountController {
     }
 
     /**
-     * Gets all Accounts.
+     * Retrieves all accounts for the currently authorized user.
      *
-     * @param appUser Currently Authorized AppUser.
-     * @return List of Accounts.
+     * @param appUser the currently authorized AppUser
+     * @return a list of accounts belonging to the user
      */
     @GetMapping
     public List<Account> getAllAccounts(@AuthenticationPrincipal AppUser appUser) {
@@ -35,12 +38,13 @@ public class AccountController {
     }
 
     /**
-     * Gets the Account by specified ID.
+     * Retrieves an account by its ID for the currently authorized user.
      *
-     * @param appUser Currently Authorized AppUser.
-     * @param id      of specific Account.
-     * @return Account with specified ID.
-     * @throws ReasonedResponseStatusException if no Account with specific ID is found.
+     * @param appUser the currently authorized AppUser
+     * @param id      the ID of the account to retrieve
+     * @return the account with the specified ID
+     * @throws ReasonedResponseStatusException if no account with the specified ID is found
+     * @throws UnauthorizedUserAccessException if the account does not belong to the authorized user
      */
     @GetMapping("/{id}")
     public Account getAccountById(@AuthenticationPrincipal AppUser appUser,
@@ -49,12 +53,11 @@ public class AccountController {
     }
 
     /**
-     * Creates new Account.
+     * Creates a new account for the currently authorized user.
      *
-     * @param appUser                 Currently Authorized AppUser.
-     * @param createAccountRequestDTO CreateAccountRequestDTO of the Account that is being created.
-     * @return Account that was created.
-     * @throws ReasonedResponseStatusException if validation of Account fails or Account with the same name already exists.
+     * @param appUser                 the currently authorized AppUser
+     * @param createAccountRequestDTO the data for the account to be created
+     * @return the created Account
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -64,11 +67,13 @@ public class AccountController {
     }
 
     /**
-     * Updates Account.
+     * Updates an existing account for the currently authorized user.
      *
-     * @param appUser                 Currently Authorized AppUser.
-     * @param updateAccountRequestDTO UpdateAccountRequestDTO with information about updated Account.
-     * @return Updated Account.
+     * @param appUser                 the currently authorized AppUser
+     * @param updateAccountRequestDTO the updated account information
+     * @return the updated Account
+     * @throws DataNotFoundException           if the account cannot be found
+     * @throws UnauthorizedUserAccessException if the account does not belong to the authorized user
      */
     @PutMapping
     public Account updateAccount(@AuthenticationPrincipal AppUser appUser,
@@ -77,11 +82,14 @@ public class AccountController {
     }
 
     /**
-     * Deletes the Account.
+     * Deletes the account with the specified ID.
      *
-     * @param appUser Currently Authorized AppUser.
-     * @param id      of Account to remove.
-     * @throws ReasonedResponseStatusException if Account cannot be found or cannot be removed.
+     * @param appUser        the currently authorized AppUser
+     * @param id             the ID of the account to remove
+     * @param deleteExpenses whether to also delete associated expenses (default is false)
+     * @throws DataNotFoundException           if the account cannot be found
+     * @throws DataConflictException           if the account cannot be removed because of existing expenses
+     * @throws UnauthorizedUserAccessException if the account does not belong to the authorized user
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

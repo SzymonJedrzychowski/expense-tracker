@@ -2,11 +2,12 @@ package jedrzychowski.szymon.expense_tracker.service;
 
 import jakarta.validation.Valid;
 import jedrzychowski.szymon.expense_tracker.config.auth.JwtUtil;
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.DataConflictException;
+import jedrzychowski.szymon.expense_tracker.config.exception.DataValidationException;
+import jedrzychowski.szymon.expense_tracker.config.exception.UnauthorizedUserAccessException;
 import jedrzychowski.szymon.expense_tracker.entity.AppUser;
 import jedrzychowski.szymon.expense_tracker.entity.dto.auth.AuthRequestDTO;
 import jedrzychowski.szymon.expense_tracker.repository.AppUserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -34,26 +35,26 @@ public class AuthService {
     }
 
 
-    public String login(@Valid AuthRequestDTO authRequestDTO) {
+    public String login(@Valid AuthRequestDTO authRequestDTO) throws UnauthorizedUserAccessException {
         try {
             authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequestDTO.username(), authRequestDTO.password())
             );
             return jwtUtil.generateToken(authRequestDTO.username());
         } catch (AuthenticationException e) {
-            throw new ReasonedResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username/password.");
+            throw new UnauthorizedUserAccessException("Invalid username/password.");
         }
     }
 
 
-    public void register(AuthRequestDTO authRequestDTO) {
+    public void register(AuthRequestDTO authRequestDTO) throws DataConflictException, DataValidationException{
         if (appUserRepository.findByUsername(authRequestDTO.username()).isPresent()) {
-            throw new ReasonedResponseStatusException(HttpStatus.CONFLICT, "Username already taken.");
+            throw new DataConflictException("Username already taken.");
         }
 
         List<String> validationResults = authRequestDTO.validateDTO();
         if (!validationResults.isEmpty()) {
-            throw new ReasonedResponseStatusException(HttpStatus.BAD_REQUEST, validationResults);
+            throw new DataValidationException(validationResults);
         }
 
         AppUser appUser = new AppUser(

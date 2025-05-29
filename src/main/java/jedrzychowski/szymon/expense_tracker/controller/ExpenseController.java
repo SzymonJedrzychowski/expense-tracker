@@ -1,7 +1,7 @@
 package jedrzychowski.szymon.expense_tracker.controller;
 
 import jakarta.validation.Valid;
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
+import jedrzychowski.szymon.expense_tracker.config.exception.*;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expense.CreateExpenseRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expense.UpdateExpenseRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.*;
@@ -24,30 +24,33 @@ public class ExpenseController {
     }
 
     /**
-     * Get Expenses. These can be filtered by: Account ID, Start Date and End Date.
+     * Retrieves expenses, optionally filtered by Account ID and date range.
      *
-     * @param appUser   Currently Authorized AppUser.
-     * @param accountId ID of Account used to filter.
-     * @param startDate Starting LocalDate of AccountState used to filter.
-     * @param endDate   Ending LocalDate of AccountState used to filter.
-     * @return List of Expense.
-     * @throws ReasonedResponseStatusException when no Account with accountId ID is found.
+     * @param appUser   the currently authorized AppUser
+     * @param accountId optional ID of the Account to filter expenses by
+     * @param startDate optional start date to filter expenses
+     * @param endDate   optional end date to filter expenses
+     * @return a list of expenses matching the filters
+     * @throws ParamValidationException        if startDate is later than endDate
+     * @throws DataNotFoundException           if no Account with the specified accountId is found
+     * @throws UnauthorizedUserAccessException if the Account does not belong to the authorized user
      */
     @GetMapping
     public List<Expense> getAllExpenses(@AuthenticationPrincipal AppUser appUser,
-                                @RequestParam(required = false) Long accountId,
-                                @RequestParam(required = false) LocalDate startDate,
-                                @RequestParam(required = false) LocalDate endDate) {
+                                        @RequestParam(required = false) Long accountId,
+                                        @RequestParam(required = false) LocalDate startDate,
+                                        @RequestParam(required = false) LocalDate endDate) {
         return expenseService.getAllExpenses(appUser, accountId, startDate, endDate);
     }
 
     /**
-     * Gets the Expense by specified ID.
+     * Retrieves the Expense with the specified ID.
      *
-     * @param appUser Currently Authorized AppUser.
-     * @param id      of specific Expense.
-     * @return Expense with specified ID.
-     * @throws ReasonedResponseStatusException if no Expense with specific ID is found.
+     * @param appUser the currently authorized AppUser
+     * @param id      the ID of the Expense to retrieve
+     * @return the Expense with the specified ID
+     * @throws DataNotFoundException           if no Expense with the specified ID is found
+     * @throws UnauthorizedUserAccessException if the Expense does not belong to the authorized user
      */
     @GetMapping("/{id}")
     public Expense getExpenseById(@AuthenticationPrincipal AppUser appUser,
@@ -56,12 +59,15 @@ public class ExpenseController {
     }
 
     /**
-     * Creates new Expense.
+     * Creates a new Expense.
      *
-     * @param appUser                 Currently Authorized AppUser.
-     * @param createExpenseRequestDTO CreateExpenseRequestDTO of the Account that is being created.
-     * @return Account that was created.
-     * @throws ReasonedResponseStatusException if validation fails or data is not found.
+     * @param appUser                 the currently authorized AppUser
+     * @param createExpenseRequestDTO the details of the Expense to be created
+     * @return the created Expense
+     * @throws DataValidationException         if validation of createExpenseRequestDTO fails
+     * @throws DataNotFoundException           if no Expense Type or Account with specified IDs is found
+     * @throws UnauthorizedUserAccessException if the Account does not belong to the authorized user
+     * @throws ForbiddenActionException        if Expense Type with specified ID cannot be used for specified Account
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -71,12 +77,15 @@ public class ExpenseController {
     }
 
     /**
-     * Updates Expense.
+     * Updates an existing Expense.
      *
-     * @param appUser                 Currently Authorized AppUser.
-     * @param updateExpenseRequestDTO UpdateAccountRequestDTO with information about updated Expense.
-     * @return Updated Expense.
-     * @throws ReasonedResponseStatusException if validation fails or Expense cannot be edited.
+     * @param appUser                 the currently authorized AppUser
+     * @param updateExpenseRequestDTO DTO containing updated Expense information
+     * @return the updated Expense
+     * @throws DataValidationException         if validation of updateExpenseRequestDTO fails
+     * @throws DataNotFoundException           if no Expense, Expense Type or Account with specified IDs is found
+     * @throws UnauthorizedUserAccessException if the Account or Expense do not belong to the authorized user
+     * @throws ForbiddenActionException        if Expense Type with specified ID cannot be used for specified Account
      */
     @PutMapping
     public Expense updateExpense(@AuthenticationPrincipal AppUser appUser,
@@ -85,11 +94,12 @@ public class ExpenseController {
     }
 
     /**
-     * Deletes the Expense.
+     * Deletes the Expense with the specified ID.
      *
-     * @param appUser Currently Authorized AppUser.
-     * @param id      of Expense to remove.
-     * @throws ReasonedResponseStatusException if Expense cannot be found.
+     * @param appUser the currently authorized AppUser
+     * @param id      the ID of the Expense to remove
+     * @throws ReasonedResponseStatusException if the Expense cannot be found
+     * @throws UnauthorizedUserAccessException if the Expense does not belong to the authorized user
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
