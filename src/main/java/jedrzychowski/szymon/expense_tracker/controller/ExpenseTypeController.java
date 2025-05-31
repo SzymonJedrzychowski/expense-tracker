@@ -3,7 +3,6 @@ package jedrzychowski.szymon.expense_tracker.controller;
 import jakarta.validation.Valid;
 import jedrzychowski.szymon.expense_tracker.config.exception.DataConflictException;
 import jedrzychowski.szymon.expense_tracker.config.exception.DataNotFoundException;
-import jedrzychowski.szymon.expense_tracker.config.exception.ReasonedResponseStatusException;
 import jedrzychowski.szymon.expense_tracker.config.exception.UnauthorizedUserAccessException;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expenseType.CreateExpenseTypeRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expenseType.UpdateExpenseTypeRequestDTO;

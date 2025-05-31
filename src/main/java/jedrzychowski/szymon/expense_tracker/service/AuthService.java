@@ -35,7 +35,8 @@ public class AuthService {
     }
 
 
-    public String login(@Valid AuthRequestDTO authRequestDTO) throws UnauthorizedUserAccessException {
+    public String login(@Valid AuthRequestDTO authRequestDTO) throws
+                                                              UnauthorizedUserAccessException {
         try {
             authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequestDTO.username(), authRequestDTO.password())
@@ -47,7 +48,9 @@ public class AuthService {
     }
 
 
-    public void register(AuthRequestDTO authRequestDTO) throws DataConflictException, DataValidationException{
+    public void register(AuthRequestDTO authRequestDTO) throws
+                                                        DataConflictException,
+                                                        DataValidationException {
         if (appUserRepository.findByUsername(authRequestDTO.username()).isPresent()) {
             throw new DataConflictException("Username already taken.");
         }

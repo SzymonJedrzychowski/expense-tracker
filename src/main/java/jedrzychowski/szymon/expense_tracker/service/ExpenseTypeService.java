@@ -7,67 +7,61 @@ import jedrzychowski.szymon.expense_tracker.entity.AppUser;
 import jedrzychowski.szymon.expense_tracker.entity.ExpenseType;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expenseType.CreateExpenseTypeRequestDTO;
 import jedrzychowski.szymon.expense_tracker.entity.dto.expenseType.UpdateExpenseTypeRequestDTO;
+import jedrzychowski.szymon.expense_tracker.finder.AccountFinder;
+import jedrzychowski.szymon.expense_tracker.finder.ExpenseTypeFinder;
 import jedrzychowski.szymon.expense_tracker.repository.AccountRepository;
 import jedrzychowski.szymon.expense_tracker.repository.ExpenseRepository;
 import jedrzychowski.szymon.expense_tracker.repository.ExpenseTypeRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class ExpenseTypeService {
 
-    private final AccountRepository accountRepository;
     private final ExpenseRepository expenseRepository;
     private final ExpenseTypeRepository expenseTypeRepository;
+    private final AccountFinder accountFinder;
+    private final ExpenseTypeFinder expenseTypeFinder;
 
     public ExpenseTypeService(AccountRepository accountRepository,
                               ExpenseRepository expenseRepository,
                               ExpenseTypeRepository expenseTypeRepository) {
-        this.accountRepository = accountRepository;
         this.expenseRepository = expenseRepository;
         this.expenseTypeRepository = expenseTypeRepository;
+        this.accountFinder = new AccountFinder(accountRepository);
+        this.expenseTypeFinder = new ExpenseTypeFinder(expenseTypeRepository);
     }
 
     public List<ExpenseType> getAllExpenseTypes(AppUser appUser,
-                                                Long accountId) throws DataNotFoundException, UnauthorizedUserAccessException {
-        //Return all without filtering
+                                                Long accountId) throws
+                                                                DataNotFoundException,
+                                                                UnauthorizedUserAccessException {
         if (accountId == null) {
             return expenseTypeRepository.findAllByAccount_AppUser(appUser);
         }
 
-        //Check if Account with specific ID exists.
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new DataNotFoundException(
-                        String.format("Cannot find Account with ID: %d.", accountId)
-                ));
-
+        Account account = accountFinder.findById(accountId);
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
 
         return expenseTypeRepository.findAllByAccountId(accountId);
     }
 
     public ExpenseType getExpenseTypeById(AppUser appUser,
-                                          Long id) throws DataNotFoundException, UnauthorizedUserAccessException {
-        ExpenseType expenseType = expenseTypeRepository.findById(id)
-                .orElseThrow(() -> new DataNotFoundException(
-                        String.format("Cannot find ExpenseType with ID: %d.", id)
-                ));
-
+                                          Long id) throws
+                                                   DataNotFoundException,
+                                                   UnauthorizedUserAccessException {
+        ExpenseType expenseType = expenseTypeFinder.findById(id);
         expenseType.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
         return expenseType;
     }
 
     public ExpenseType createExpenseType(AppUser appUser,
-                                         @Valid CreateExpenseTypeRequestDTO createExpenseTypeRequestDTO) throws DataNotFoundException, UnauthorizedUserAccessException, DataConflictException {
-        //Find Account for the ExpenseType
-        Account account = accountRepository.findById(createExpenseTypeRequestDTO.accountId())
-                .orElseThrow(() -> new DataNotFoundException(
-                        String.format("Cannot find Account with ID: %d.", createExpenseTypeRequestDTO.accountId())
-                ));
-
+                                         @Valid CreateExpenseTypeRequestDTO createExpenseTypeRequestDTO) throws
+                                                                                                         DataNotFoundException,
+                                                                                                         UnauthorizedUserAccessException,
+                                                                                                         DataConflictException {
+        Account account = accountFinder.findById(createExpenseTypeRequestDTO.accountId());
         account.validateIfAccountIsOwnedByCurrentUser(appUser);
 
         //Find if Expense Type would be a duplicate
@@ -79,36 +73,24 @@ public class ExpenseTypeService {
             );
         }
 
-        //Create the ExpenseType
         ExpenseType expenseType = new ExpenseType(createExpenseTypeRequestDTO, account);
-
         return expenseTypeRepository.save(expenseType);
     }
 
     public ExpenseType updateExpenseType(AppUser appUser,
-                                         @Valid UpdateExpenseTypeRequestDTO updateExpenseTypeRequestDTO) throws DataNotFoundException, UnauthorizedUserAccessException, DataConflictException {
-        //Find the ExpenseType to update
-        ExpenseType expenseTypeToUpdate = expenseTypeRepository.findById(updateExpenseTypeRequestDTO.id())
-                .orElseThrow(() -> new DataNotFoundException(
-                        String.format("Cannot find ExpenseType with ID %d.", updateExpenseTypeRequestDTO.id())
-                ));
-
+                                         @Valid UpdateExpenseTypeRequestDTO updateExpenseTypeRequestDTO) throws
+                                                                                                         DataNotFoundException,
+                                                                                                         UnauthorizedUserAccessException,
+                                                                                                         DataConflictException {
+        ExpenseType expenseTypeToUpdate = expenseTypeFinder.findById(updateExpenseTypeRequestDTO.id());
         expenseTypeToUpdate.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
 
-        //Find the account to be updated for ExpenseType
-        Account newAccount = accountRepository.findById(updateExpenseTypeRequestDTO.accountId())
-                .orElseThrow(() -> new DataNotFoundException(
-                        String.format("Cannot find Account with ID %d.", updateExpenseTypeRequestDTO.accountId())
-                ));
-
+        Account newAccount = accountFinder.findById(updateExpenseTypeRequestDTO.accountId());
         newAccount.validateIfAccountIsOwnedByCurrentUser(appUser);
 
         //Check if the ExpenseType is used by previous Account (if Account changes)
-        if (!Objects.equals(updateExpenseTypeRequestDTO.accountId(), expenseTypeToUpdate.getAccount().getId())
-                && expenseRepository.existsByExpenseType(expenseTypeToUpdate)) {
-            throw new DataConflictException(
-                    String.format("Account with Name: %s has existing Expenses with ExpenseType with Name: %s.",
-                            expenseTypeToUpdate.getAccount().getName(), expenseTypeToUpdate.getName()));
+        if (!updateExpenseTypeRequestDTO.accountId().equals(expenseTypeToUpdate.getAccount().getId())) {
+            validateForExistingExpenseType(expenseTypeToUpdate);
         }
 
         //Check for duplicates
@@ -121,29 +103,29 @@ public class ExpenseTypeService {
                     ));
         }
 
-        //Update the ExpenseType
         expenseTypeToUpdate.updateExpenseType(updateExpenseTypeRequestDTO, newAccount);
-
         return expenseTypeRepository.save(expenseTypeToUpdate);
     }
 
     public void deleteExpenseType(AppUser appUser,
-                                  Long id) throws DataNotFoundException, UnauthorizedUserAccessException, DataConflictException {
-        //Find the ExpenseType to update
-        ExpenseType expenseTypeToDelete = expenseTypeRepository.findById(id)
-                .orElseThrow(() -> new DataNotFoundException(
-                        String.format("Cannot find ExpenseType with ID %d.", id)
-                ));
-
+                                  Long id) throws
+                                           DataNotFoundException,
+                                           UnauthorizedUserAccessException,
+                                           DataConflictException {
+        ExpenseType expenseTypeToDelete = expenseTypeFinder.findById(id);
         expenseTypeToDelete.getAccount().validateIfAccountIsOwnedByCurrentUser(appUser);
 
-        //Check if the ExpenseType is used by previous Account (if Account changes)
-        if (expenseRepository.existsByExpenseType(expenseTypeToDelete)) {
+        validateForExistingExpenseType(expenseTypeToDelete);
+        expenseTypeRepository.delete(expenseTypeToDelete);
+    }
+
+    private void validateForExistingExpenseType(ExpenseType expenseType) throws
+                                                                         DataConflictException {
+        if (expenseRepository.existsByExpenseType(expenseType)) {
             throw new DataConflictException(
                     String.format("Account with Name: %s has existing Expenses with ExpenseType with Name: %s.",
-                            expenseTypeToDelete.getAccount().getName(), expenseTypeToDelete.getName()));
+                            expenseType.getAccount().getName(), expenseType.getName()));
         }
 
-        expenseTypeRepository.delete(expenseTypeToDelete);
     }
 }
